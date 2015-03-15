@@ -3,9 +3,6 @@
 
 #define msleep(a)	do { /*printf("."); fflush(stdout); */usleep(a*1000); } while (0)
 
-/*
- * use outb_p(data, addr) and inb_p(addr) to write and read to/from parallel port
- */
 #define HOST_WRITE_CODE {'X', 'Y', 'Z', 'A'}
 #define HOST_READ_CODE	{'x', 'y', 'z', 'a'}
 
