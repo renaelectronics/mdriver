@@ -10,7 +10,6 @@ install: mtutil
 mtutil: mtutil.c
 	$(CC) mtutil mtutil.c 6474.c options.c serial.c	
 
-
 clean:  
 	rm -f mtutil
 	rm -f *~ *.o

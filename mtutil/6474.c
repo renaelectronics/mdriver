@@ -13,27 +13,31 @@
 #include "serial.h"
 
 /* write data and wait for echo */
-int pp_write_read_data(unsigned char *pchar, int fd){
-	unsigned char echo;
+int serial_write_read_data(int fd, char *pchar, int size){
+	char echo;
 	int rc;
+	int n;
 
-	/* write data */
-	write(fd, pchar, 1);
-
-	/* read data back */
-	rc = read(fd, &echo, 1); 
-	if (rc > 0){
-		/* read back check */	
-		if (*pchar != echo){
-			printf("%s:read back error, sent %c, received %c\n", 
-						__FUNCTION__, *pchar, echo);
-			rc = -1;
-        }
+	for (n=0; n<size; n++){
+		/* write data */
+		write(fd, &pchar[n], 1);
+		/* read data back */
+		rc = read(fd, &echo, 1); 
+		if (rc > 0){
+			/* read back check */	
+			if (pchar[n] != echo){
+				printf("\n%s : read back error, sent %02x, received %02x\n", 
+							__FUNCTION__, (unsigned char)pchar[n], echo);
+				return -1;
+        	}
+		}
+    	else{
+			printf("\n%s : timeout, sent %d of %d, %02x\n",
+				__FUNCTION__, n, size-1, pchar[n]);
+			return -1;
+    	}	
 	}
-    else{
-		printf("%stimeout, sent %c\n", 	__FUNCTION__, *pchar);
-    }	
-	return rc;
+	return size;
 }
 
 void dump_data(char *pdata, int size)

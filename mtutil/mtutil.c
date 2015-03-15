@@ -229,28 +229,28 @@ int main(int argc, char **argv)
 		else{
 			dump_data(data, EEPROM_MAX_BYTE);
 		}	
+		goto out;
 	}
 	
-	/* close and exit */
-	serial_close(serportfd);
-	exit(0);
-
-#if (0)
 	/* prepare data */
 	memset(data, 0, EEPROM_MAX_BYTE);
 	options_to_buf(&p, data);	
 
-	/* must wait 3 second, 
-	 * for the data to be written to eeprom an 6474 register 
-	 */
+	/* write motor data */
 	printf("Programming ... ");
-	fflush(stdout);
-	msleep(3000);
-	printf("[OK]\n");
+	write(serportfd, &(host_write_code[p.motor-1]) ,1);
+	msleep(1000);
+	if ((serial_write_read_data(serportfd, data, EEPROM_MAX_BYTE)) > 0){
+		printf("[OK]\n");
+	}
+	else{
+		printf("[FAILED]\n");
+	}
 	fflush(stdout);
 
+out:
 	/* close and exit */
 	serial_close(serportfd);
 	exit(0);
-#endif
+
 }

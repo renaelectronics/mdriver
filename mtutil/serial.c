@@ -54,8 +54,8 @@ int serial_open(char * device_name)
 	/* raw input */
 	options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
 
-	/* block wait with timeout of 1s */
-	options.c_cc[VTIME] = 10; /* timeout = VTIME * 0.1 inter-character */
+	/* block wait with timeout of 5s, need time for programming the flash memory */
+	options.c_cc[VTIME] = 50; /* timeout = VTIME * 0.1 inter-character */
 	options.c_cc[VMIN] = 0;   /* blocking read until 1 chars received */
 
 	/* raw output */

@@ -27,9 +27,7 @@
 #define EEPROM_MAX_BYTE     (EEPROM_CHECK_SUM +1)
 #define EEPROM_OFFSET       (0x20)
 
-void send_data_raw(char *pdata, int num_byte, int fd);
-void rx_data(char *pdata, int num_byte, int offset, int fd);
-void send_data(char *pdata, int num_byte, int offset, int fd);
+int serial_write_read_data(int fd, char *pchar, int size);
 void dump_data(char *pdata, int size);
 
 #endif
