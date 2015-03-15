@@ -1,0 +1,5 @@
+PCIe configure port? [/dev/ttyWCH0]
+which motor? [X/Y/Z/A]
+size of motor? [NEMA/NEMALONG/CUSTOM]
+motor drive current? [ A ]
+
