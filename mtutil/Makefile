@@ -8,7 +8,7 @@ install: mtutil
 
 
 mtutil: mtutil.c
-	$(CC) mtutil mtutil.c 6474.c options.c serial.c	
+	$(CC) mtutil mtutil.c options.c serial.c	
 
 clean:  
 	rm -f mtutil
