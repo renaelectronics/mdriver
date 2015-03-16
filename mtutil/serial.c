@@ -93,8 +93,9 @@ int serial_write_read_data(int fd, char *pchar, int size){
 		if (rc > 0){
 			/* read back check */	
 			if (pchar[n] != echo){
-				printf("\n%s : read back error, sent %02x, received %02x\n", 
-							__FUNCTION__, (unsigned char)pchar[n], echo);
+				printf("\n%s : read back error at index %d of %d, sent %02x, received %02x\n", 
+							__FUNCTION__, n, size-1,
+							(unsigned char)pchar[n], echo);
 				return -1;
         	}
 		}

@@ -238,13 +238,17 @@ int main(int argc, char **argv)
 
 	/* write motor data */
 	printf("Programming ... ");
-	write(serportfd, &(host_write_code[p.motor-1]) ,1);
-	msleep(1000);
-	if ((serial_write_read_data(serportfd, data, EEPROM_MAX_BYTE)) > 0){
+	for(;;){
+		if (serial_write_read_data(serportfd, &(host_write_code[p.motor-1]) ,1) <= 0){
+			printf("[FAILED]\n");
+			break;
+		}
+		if ((serial_write_read_data(serportfd, data, EEPROM_MAX_BYTE)) <= 0){
+			printf("[FAILED]\n");
+			break;
+		}
 		printf("[OK]\n");
-	}
-	else{
-		printf("[FAILED]\n");
+		break;
 	}
 	fflush(stdout);
 
