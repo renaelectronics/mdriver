@@ -220,11 +220,13 @@ int main(int argc, char **argv)
 	}
 
 	if (p.readinfo){
-		/* read motor data */
+		/* send command to read motor data */
 		write(serportfd, &(host_read_code[p.motor-1]) ,1);
-		rc = read(serportfd, data, EEPROM_MAX_BYTE);
-		if (rc < EEPROM_MAX_BYTE){
-			printf("Failed to read motor setting information\n");
+		/* read data */
+		rc = serial_read_data(serportfd, data, EEPROM_MAX_BYTE-1);
+		if (rc < EEPROM_MAX_BYTE-1){
+			printf("Failed to read motor setting information, number of byte read = %d\n", rc);
+			dump_data(data, rc);
 		}	
 		else{
 			dump_data(data, EEPROM_MAX_BYTE);

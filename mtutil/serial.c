@@ -79,6 +79,20 @@ void serial_close(int fd)
 	return;
 }
 
+/* read */
+int serial_read_data(int fd, char *pchar, int size){
+	int n;
+	int rc;
+
+	for (n=0; n<size; n++){
+		rc = read(fd, pchar+n, 1);
+		if (rc!=1){
+			return n;
+		}
+	}
+	return size;
+}
+
 /* write data and wait for echo */
 int serial_write_read_data(int fd, char *pchar, int size){
 	char echo;
