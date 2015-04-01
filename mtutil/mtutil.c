@@ -145,7 +145,7 @@ void options_to_buf(struct motor_options *p, char *pbuf)
 	n = p->ocd_th / 0.375;
 	pbuf[EEPROM_OCD_TH] =  n & 0xff;
 
-	/* EEPROM_STEP_MODE, bit7,6 must be 1 */
+	/* EEPROM_STEP_MODE, bit7,3 must be 1 */
 	pbuf[EEPROM_STEP_MODE] = 0x88 | p->step_mode;
 
 	/* EEPROM_ALARM_EN */
@@ -197,7 +197,7 @@ int main(int argc, char **argv)
 	p.ton_min = 21.0;
 	p.toff_min = 21.0;
 	p.ocd_th = 8 * 0.375;
-	p.step_mode = 7;
+	p.step_mode = 0;/* default to full step */
 	p.readinfo = 0;	
 	
 	if (!get_motor_options(argc, argv, &p)){
@@ -208,7 +208,6 @@ int main(int argc, char **argv)
 	if (!options_check(argc, argv, &p)){
 		exit(0);
 	}
-	dump_motor_options(&p);
 
 	/* open serport device */
 	serportfd = serial_open(p.serport);
@@ -223,8 +222,8 @@ int main(int argc, char **argv)
 		/* send command to read motor data */
 		write(serportfd, &(host_read_code[p.motor-1]) ,1);
 		/* read data */
-		rc = serial_read_data(serportfd, data, EEPROM_MAX_BYTE-1);
-		if (rc < EEPROM_MAX_BYTE-1){
+		rc = serial_read_data(serportfd, data, EEPROM_MAX_BYTE);
+		if (rc < EEPROM_MAX_BYTE){
 			printf("Failed to read motor setting information, number of byte read = %d\n", rc);
 			dump_data(data, rc);
 		}	
@@ -233,7 +232,10 @@ int main(int argc, char **argv)
 		}	
 		goto out;
 	}
-	
+
+	/* dump_motor_options */	
+	dump_motor_options(&p);
+
 	/* prepare data */
 	memset(data, 0, EEPROM_MAX_BYTE);
 	options_to_buf(&p, data);	
