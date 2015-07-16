@@ -32,7 +32,9 @@ if [ -z $IO_ADDRESS ]; then
 fi
 echo "Found PCIe ${VENDOR}:${DEVICE} IO address at ${IO_ADDRESS}" | tee -a ${LOG}
 
-# wget and insmod WCH serial module
+# -----------------------------------
+#  wget and insmod WCH serial module
+# -----------------------------------
 echo "log existing wch module if exists" | tee -a ${LOG}
 lsmod | grep wch | tee -a ${LOG}
 echo "wget wch module and save it to ${RENA_HOME}"
@@ -59,7 +61,9 @@ if [ -z "lsmod | grep ${WCH_DRIVER}" ]; then
 fi
 echo " completed"
 
-# create stepconf file
+# ----------------------
+#  create stepconf file
+# ----------------------
 
 exit 0
 
