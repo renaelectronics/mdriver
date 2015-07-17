@@ -1,0 +1,3 @@
+sudo apt-get source linux-image-$(uname -r)
+cd linux-3.4.55/drivers/parport
+make -C /lib/modules/3.4-9-rtai-686-pae/build SUBDIRS=`pwd` modules
