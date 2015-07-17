@@ -1,3 +1,7 @@
 sudo apt-get source linux-image-$(uname -r)
 cd linux-3.4.55/drivers/parport
 make -C /lib/modules/3.4-9-rtai-686-pae/build SUBDIRS=`pwd` modules
+sudo modprobe -r parport
+sudo modprobe -r parport_pc
+sudo insmod parport
+sudo insmod parport_pc
