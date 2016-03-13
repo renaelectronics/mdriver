@@ -1,1 +1,1 @@
-cmd_/home/thomastai/rena/wchdriver/wch.ko := ld -r -m elf_i386 -T /usr/src/linux-headers-3.4-9-common-rtai/scripts/module-common.lds --build-id  -o /home/thomastai/rena/wchdriver/wch.ko /home/thomastai/rena/wchdriver/wch.o /home/thomastai/rena/wchdriver/wch.mod.o
+cmd_/home/thomastai/mdriver/wchdriver/wch.ko := ld -r -m elf_i386 -T /usr/src/linux-headers-3.4-9-common-rtai/scripts/module-common.lds --build-id  -o /home/thomastai/mdriver/wchdriver/wch.ko /home/thomastai/mdriver/wchdriver/wch.o /home/thomastai/mdriver/wchdriver/wch.mod.o

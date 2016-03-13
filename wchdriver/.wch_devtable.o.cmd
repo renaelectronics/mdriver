@@ -1,9 +1,9 @@
-cmd_/home/thomastai/rena/wchdriver/wch_devtable.o :=  gcc-4.6 -Wp,-MD,/home/thomastai/rena/wchdriver/.wch_devtable.o.d  -nostdinc -isystem /usr/lib/gcc/i486-linux-gnu/4.6/include -I/usr/src/linux-headers-3.4-9-common-rtai/arch/x86/include -Iarch/x86/include/generated -Iinclude  -I/usr/src/linux-headers-3.4-9-common-rtai/include -include /usr/src/linux-headers-3.4-9-common-rtai/include/linux/kconfig.h   -I/home/thomastai/rena/wchdriver -D__KERNEL__ -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -O2 -m32 -msoft-float -mregparm=3 -freg-struct-return -mpreferred-stack-boundary=2 -march=i686 -mtune=generic -Wa,-mtune=generic32 -ffreestanding -fstack-protector -DCONFIG_AS_CFI=1 -DCONFIG_AS_CFI_SIGNAL_FRAME=1 -DCONFIG_AS_CFI_SECTIONS=1 -pipe -Wno-sign-compare -fno-asynchronous-unwind-tables -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx -Wframe-larger-than=1024 -Wno-unused-but-set-variable -fomit-frame-pointer -g -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -DCC_HAVE_ASM_GOTO  -DMODULE  -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(wch_devtable)"  -D"KBUILD_MODNAME=KBUILD_STR(wch)" -c -o /home/thomastai/rena/wchdriver/.tmp_wch_devtable.o /home/thomastai/rena/wchdriver/wch_devtable.c
+cmd_/home/thomastai/mdriver/wchdriver/wch_devtable.o :=  gcc-4.6 -Wp,-MD,/home/thomastai/mdriver/wchdriver/.wch_devtable.o.d  -nostdinc -isystem /usr/lib/gcc/i486-linux-gnu/4.6/include -I/usr/src/linux-headers-3.4-9-common-rtai/arch/x86/include -Iarch/x86/include/generated -Iinclude  -I/usr/src/linux-headers-3.4-9-common-rtai/include -include /usr/src/linux-headers-3.4-9-common-rtai/include/linux/kconfig.h   -I/home/thomastai/mdriver/wchdriver -D__KERNEL__ -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -O2 -m32 -msoft-float -mregparm=3 -freg-struct-return -mpreferred-stack-boundary=2 -march=i686 -mtune=generic -Wa,-mtune=generic32 -ffreestanding -fstack-protector -DCONFIG_AS_CFI=1 -DCONFIG_AS_CFI_SIGNAL_FRAME=1 -DCONFIG_AS_CFI_SECTIONS=1 -pipe -Wno-sign-compare -fno-asynchronous-unwind-tables -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx -Wframe-larger-than=1024 -Wno-unused-but-set-variable -fomit-frame-pointer -g -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -DCC_HAVE_ASM_GOTO  -DMODULE  -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(wch_devtable)"  -D"KBUILD_MODNAME=KBUILD_STR(wch)" -c -o /home/thomastai/mdriver/wchdriver/.tmp_wch_devtable.o /home/thomastai/mdriver/wchdriver/wch_devtable.c
 
-source_/home/thomastai/rena/wchdriver/wch_devtable.o := /home/thomastai/rena/wchdriver/wch_devtable.c
+source_/home/thomastai/mdriver/wchdriver/wch_devtable.o := /home/thomastai/mdriver/wchdriver/wch_devtable.c
 
-deps_/home/thomastai/rena/wchdriver/wch_devtable.o := \
-  /home/thomastai/rena/wchdriver/wch_common.h \
+deps_/home/thomastai/mdriver/wchdriver/wch_devtable.o := \
+  /home/thomastai/mdriver/wchdriver/wch_common.h \
     $(wildcard include/config/type.h) \
     $(wildcard include/config/irq.h) \
     $(wildcard include/config/m386.h) \
@@ -809,6 +809,6 @@ deps_/home/thomastai/rena/wchdriver/wch_devtable.o := \
   /usr/src/linux-headers-3.4-9-common-rtai/include/linux/aio_abi.h \
   /usr/src/linux-headers-3.4-9-common-rtai/include/linux/uio.h \
 
-/home/thomastai/rena/wchdriver/wch_devtable.o: $(deps_/home/thomastai/rena/wchdriver/wch_devtable.o)
+/home/thomastai/mdriver/wchdriver/wch_devtable.o: $(deps_/home/thomastai/mdriver/wchdriver/wch_devtable.o)
 
-$(deps_/home/thomastai/rena/wchdriver/wch_devtable.o):
+$(deps_/home/thomastai/mdriver/wchdriver/wch_devtable.o):

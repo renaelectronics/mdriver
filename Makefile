@@ -1,9 +1,9 @@
 # Copyright 2010 WCH GROUP all right reserved 
-all: wchdriver_make wchdump_make mtutil_make
+all: wchdriver_make wchdump_make wch6474_make
 
-install: wchdriver_install wchdump_install wchmknod_install mtutil_install
+install: wchdriver_install wchdump_install wchmknod_install wch6474_install
 
-clean: wchdriver_clean wchdump_clean wchmknod_clean local_clean mtutil_clean
+clean: wchdriver_clean wchdump_clean wchmknod_clean local_clean wch6474_clean
 
 wchdriver_make:
 	cd wchdriver;\
@@ -37,16 +37,16 @@ wchmknod_clean:
 	cd wchmknod;\
 	rm -f *~
 
-mtutil_make:
-	cd mtutil;\
+wch6474_make:
+	cd wch6474;\
 	make
 
-mtutil_install:
-	cd mtutil;\
+wch6474_install:
+	cd wch6474;\
 	make install
 
-mtutil_clean:
-	cd mtutil;\
+wch6474_clean:
+	cd wch6474;\
 	make clean;
 
 
