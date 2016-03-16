@@ -213,7 +213,7 @@ int main(int argc, char **argv)
 	serportfd = serial_open(p.serport);
 	if (serportfd  == -1){
 		printf("failed to open serial port device %s\n", p.serport);
-		printf("type: sudo chmod a+rw %s \n", argv[0]);
+		printf("type: sudo chmod a+rw %s \n", p.serport);
 		printf("retry the operation again.\n"); 
 		exit(0);
 	}

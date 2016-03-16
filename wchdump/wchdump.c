@@ -55,7 +55,7 @@ struct wch_info
 
 static int get_ser_port_info(struct wch_info *infop)
 {
-	char ser_name[14] = "/dev/ttyWCH32";
+	char ser_name[14] = "/dev/ttyWCH0";
 	int ser_fd;
 	
 	ser_fd = open(ser_name, O_RDWR | O_NOCTTY);
