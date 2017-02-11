@@ -8,7 +8,8 @@ install: wch6474
 
 
 wch6474: wch6474.c
-	$(CC) wch6474 wch6474.c options.c serial.c	
+#	$(CC) wch6474 wch6474.c options.c serial.c	
+	$(CC) wch6474 wch6474.c options.c parport.c	
 
 clean:  
 	rm -f wch6474

@@ -4,8 +4,10 @@
 #include <sys/io.h>
 #include <string.h>
 #include <unistd.h>
-#include "6474.h"
-#include "motor_options.h"
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/parport.h>
+#include <linux/ppdev.h>
 
 #define msleep(a)	do { printf("."); fflush(stdout); usleep(a*1000); } while (0)
 
@@ -41,32 +43,27 @@
 /*
  * send raw data, on entry, HOST_CS must be low, data port must be 0
  */
-void send_data_raw(char *pdata, int num_byte, int base_addr)
+void send_data_raw(char *pdata, int num_byte, int fd)
 {
-	unsigned char data, status, control;
-	int data_addr = base_addr;
-	int status_addr = base_addr + 1;
-	int control_addr = base_addr  + 2;
-	int n, bit, tmp;
+	unsigned char data;
+	int n, bit;
 
 	/*
 	 * on entry data port must already be 0,
 	 * HOST_CS must be 0
  	 */
 	data = 0;
-	outb_p(data, data_addr);
+	ioctl(fd, PPWDATA, &data);
 	msleep(1);
 
 	/* start sending raw data */
 	for (n=0; n<num_byte; n++){
-		tmp = pdata[n];
-
 		/* send a byte */
 		for(bit=7; bit>=0; bit--){
 
 			/* set clock low */
 			data &= (~HOST_CLK);
-			outb_p(data, data_addr);
+			ioctl(fd, PPWDATA, &data);
 			msleep(1);
 
 			/* set SDO bit banding value */
@@ -76,14 +73,15 @@ void send_data_raw(char *pdata, int num_byte, int base_addr)
 			else{
 				data &= (~HOST_SDO);
 			}
-			outb_p(data, data_addr);
+			ioctl(fd, PPWDATA, &data);
 			msleep(1);
 
 			/* set clock high */
 			data |= HOST_CLK;
-			outb_p(data, data_addr);
+			ioctl(fd, PPWDATA, &data);
 			msleep(1);
 
+			/* if last bit then wait for the data to process */
 			if (bit == 0){
 				msleep(20);
 			}
@@ -92,45 +90,41 @@ void send_data_raw(char *pdata, int num_byte, int base_addr)
 	}
 	/* set data port back to 0  */
 	data = 0;
-	outb_p(data, data_addr);
+	ioctl(fd, PPWDATA, &data);
 	msleep(1);
 }
 
-void rx_data(char *pdata, int num_byte, int base_addr)
+void rx_data(char *pdata, int num_byte, int fd)
 {
 	unsigned char data, status, control;
-	int data_addr = base_addr;
-	int status_addr = base_addr + 1;
-	int control_addr = base_addr  + 2;
-	int n, bit, tmp;
+	int n, bit;
 	char header[] = HOST_READ_CODE;
 
 	/* initilize parallel port to known state */
-	status = inb_p(status_addr);
-	control = inb_p(control_addr);
-	outb_p(data, data_addr);
+	ioctl(fd, PPRSTATUS, &status);
+	ioctl(fd, PPRCONTROL, &control);
 	msleep(1);
 
 	/* data port = 0x00 */
 	data = 0;
-	outb_p(data, data_addr);
+	ioctl(fd, PPWDATA, &data);
 	msleep(1);
 
 	/* set CS high and wait for 100ms for reset, probe pin is inverted */
 	control &= (~HOST_CS);
-	outb_p(control, control_addr);
+	ioctl(fd, PPWCONTROL, &control);
 	msleep(100);
 
 	/* set CS low, probe pin is inverted */
 	control |= HOST_CS;
-	outb_p(control, control_addr);
+	ioctl(fd, PPWCONTROL, &control);
 	msleep(1);
 
 	/* send read request header,
 	 * on entry data port must be 0,
 	 * HOST_CS must be low
 	 */
-	send_data_raw(header, 4, base_addr);
+	send_data_raw(header, 4, fd);
 
 	/* receive data */
 	for (n=0; n<num_byte; n++){
@@ -140,12 +134,12 @@ void rx_data(char *pdata, int num_byte, int base_addr)
 
 			/* set clock low */
 			data &= (~HOST_CLK);
-			outb_p(data, data_addr);
+			ioctl(fd, PPWDATA, &data);
 			msleep(1);
 
 			/* set clock high */
 			data |= HOST_CLK;
-			outb_p(data, data_addr);
+			ioctl(fd, PPWDATA, &data);
 			msleep(1);
 
 			/* wait for reply */
@@ -155,7 +149,7 @@ void rx_data(char *pdata, int num_byte, int base_addr)
 			}
 
 			/* check SDI bit value */
-			status = inb_p(status_addr);
+			ioctl(fd, PPRSTATUS, &status);
 			if (status & HOST_SDI){
 				pdata[n] |= (1 <<  bit);
 			}
@@ -168,55 +162,50 @@ void rx_data(char *pdata, int num_byte, int base_addr)
 
 	/* set data port back to 0 */
 	data = 0;
-	outb_p(data, data_addr);
+	ioctl(fd, PPWDATA, &data);
 	msleep(1);
 
 	/* set CS high, probe pin is inverted */
 	control &= (~HOST_CS);
-	outb_p(control, control_addr);
+	ioctl(fd, PPWDATA, &data);
 	msleep(1);
 
 }
 
 
-void send_data(char *pdata, int num_byte, int base_addr)
+void send_data(char *pdata, int num_byte, int fd)
 {
 	unsigned char data, status, control;
-	int data_addr = base_addr;
-	int status_addr = base_addr + 1;
-	int control_addr = base_addr  + 2;
-	int n, bit, tmp;
 	char header[] = HOST_WRITE_CODE;
 
 	/* initilize parallel port to known state */
-	status = inb_p(status_addr);
-	control = inb_p(control_addr);
-	outb_p(data, data_addr);
+	ioctl(fd, PPRSTATUS, &status);
+	ioctl(fd, PPRCONTROL, &control);
 
 	/* data port = 0x00 */
 	data = 0;
-	outb_p(data, data_addr);
+	ioctl(fd, PPWDATA, &data);
 	msleep(1);
 
 	/* set CS high and wait for 100ms for reset, probe pin is inverted */
 	control &= (~HOST_CS);
-	outb_p(control, control_addr);
+	ioctl(fd, PPWCONTROL, &control);
 	msleep(100);
 
 	/* set CS low, probe pin is inverted */
 	control |= HOST_CS;
-	outb_p(control, control_addr);
+	ioctl(fd, PPWCONTROL, &control);
 	msleep(1);
 
 	/* send header */
-	send_data_raw(header, 4, base_addr);
+	send_data_raw(header, 4, fd);
 
 	/* send data */
-	send_data_raw(pdata, num_byte, base_addr);
+	send_data_raw(pdata, num_byte, fd);
 
 	/* set CS high, probe pin is inverted */
 	control &= (~HOST_CS);
-	outb_p(control, control_addr);
+	ioctl(fd, PPWCONTROL, &control);
 	msleep(1);
 }
 
@@ -233,46 +222,51 @@ void dump_data(char *pdata, int size)
 }
 
 /*
- * main entry
+ * parallel port initiaization
  */
-int main(int argc, char **argv)
+int parport_init(char *devname)
 {
-	int n;
+	int fd;
 	int result;
-	int base_addr = 0x378;
-	char data[4+EEPROM_MAX_BYTE];
-	struct motor_options p;
+	int mode = IEEE1284_MODE_BYTE;
+	int dir = 0x00;
 
-	/* options */
-	if (!get_motor_options(argc, argv, &p)){
-		exit(0);
+	// Open the parallel port for reading and writing
+	fd = open(devname, O_RDWR);
+	if (fd <= 0) {
+		perror("Could not open parallel port, remember to modprobe ppdev");
+		return -1;
 	}
 
-	/* allow access to whole address space */
-	result = iopl(3);
-	if (result){
-		printf("failed to allow acesss the entire address space\n");
-		printf("usage: sudo %s \n", argv[0]);
-		exit(0);
+	// Try to claim port
+	if (ioctl(fd, PPCLAIM, NULL)) {
+		perror("Could not claim parallel port");
+		close(fd);
+		return -1;
 	}
 
-	/* set io permission */
-	result = ioperm(base_addr,5,1);
-	if (result){
-		printf("failed to set permission for address %04x\n", base_addr);
-		exit(0);
+	// Set the Mode
+	if (ioctl(fd, PPSETMODE, &mode)) {
+		perror("Could not set mode");
+		ioctl(fd, PPRELEASE);
+		close(fd);
+		return -1;
 	}
 
-	/* prepare data */
-	memset(data, 0, EEPROM_MAX_BYTE);
-	for(n=0; n<EEPROM_MAX_BYTE; n++){
-		data[n] = n;
+	// Set data pins to output
+	if (ioctl(fd, PPDATADIR, &dir)) {
+		perror("Could not set parallel port direction");
+		ioctl(fd, PPRELEASE);
+		close(fd);
+		return -1;
 	}
-	/* send data test */
-	send_data(data, EEPROM_MAX_BYTE, base_addr);
 
-	/* receive data test */
-	memset(data, 0, EEPROM_MAX_BYTE);
-	rx_data(data, EEPROM_MAX_BYTE, base_addr);
-	dump_data(data, EEPROM_MAX_BYTE);
+	return fd;
+}
+
+void parport_exit(int fd)
+{
+	// Release and close parallel port
+	ioctl(fd, PPRELEASE);
+	close(fd);
 }
