@@ -21,7 +21,7 @@
 #define EEPROM_CONFIG       (EEPROM_ALARM_EN + 1)
 #define EEPROM_STATUS       (EEPROM_CONFIG + 2)
 #define EEPROM_CHECK_SUM    (EEPROM_STATUS + 2)
-#define EEPROM_MAX_BYTE     (EEPROM_CHECK_SUM +1)
+#define EEPROM_MAX_BYTE     (EEPROM_CHECK_SUM + 1)
 #define EEPROM_OFFSET       (0x20)
 
 #endif

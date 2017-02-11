@@ -189,7 +189,11 @@ int main(int argc, char **argv)
 	 * Doc ID 022529 Rev 3 
 	 */
 	memset(&p, 0, sizeof(struct motor_options));
-	strcpy(p.serport, "/dev/ttyWCH0");
+#if (1)	
+        strcpy(p.serport, "/dev/ttyWCH0"); 
+#else
+	strcpy(p.serport, "/dev/ttyUSB0"); 
+#endif
 	p.current = 0.03125;
 	p.pwm_off = 44.0;
 	p.t_fast = 4.0;
@@ -233,12 +237,13 @@ int main(int argc, char **argv)
 		goto out;
 	}
 
-	/* dump_motor_options */	
+
+	/* dump_motor_options */
 	dump_motor_options(&p);
 
 	/* prepare data */
 	memset(data, 0, EEPROM_MAX_BYTE);
-	options_to_buf(&p, data);	
+	options_to_buf(&p, data);
 
 	/* write motor data */
 	printf("Programming ... ");

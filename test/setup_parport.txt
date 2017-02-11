@@ -8,4 +8,4 @@ sudo modprobe parport
 #sudo modprobe parport_pc io=0xe100 irq=auto
 sudo modprobe parport_pc io=0xdc00 irq=auto
 #sudo modprobe parport_pc io=0xcc00 irq=auto
-#sudo modprobe parport_pc io=0xd800 irq=auto
+sudo modprobe ppdev
