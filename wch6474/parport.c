@@ -9,6 +9,7 @@
 #include <linux/parport.h>
 #include <linux/ppdev.h>
 #include "6474.h"
+#include "parport.h"
 
 /*
  * parallel port status register, base + 1
@@ -58,7 +59,7 @@ char bit_op(char *ptr, int pos, int op)
 	int mask;
 
 	/* index of the array */
-	n = pos << 3;
+	n = pos >> 3;
 	pdata = &(ptr[n]);
 	mask = (0x80 >> (pos & 0x7));
 	switch(op){
@@ -107,7 +108,7 @@ void send_packet_raw(char *pdata, int num_byte, int fd)
 	/* data port = 0 */
 	data = 0;
 	ioctl(fd, PPWDATA, &data);
-	msleep(1);
+	msleep(50);
 
 	/* start sending raw data */
 	for (n=0; n<num_byte*8; n++){
@@ -115,20 +116,22 @@ void send_packet_raw(char *pdata, int num_byte, int fd)
 		/* set clock low */
 		data &= (~HOST_CLK);
 		ioctl(fd, PPWDATA, &data);
-		msleep(1);
+		msleep(10);
 
 		/* set SDO bit banding value */
-		if (get_bit(pdata, n))
+		if (get_bit(pdata, n)){
 			data |= HOST_SDO;
-		else
+		}
+		else{
 			data &= (~HOST_SDO);
+		}
 		ioctl(fd, PPWDATA, &data);
-		msleep(1);
+		msleep(10);
 
 		/* set clock high */
 		data |= HOST_CLK;
 		ioctl(fd, PPWDATA, &data);
-		msleep(1);
+		msleep(10);
 
 	}
 	/* wait for the packet to be process */
