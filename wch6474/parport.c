@@ -8,14 +8,7 @@
 #include <sys/ioctl.h>
 #include <linux/parport.h>
 #include <linux/ppdev.h>
-
-#define msleep(a)	do { printf("."); fflush(stdout); usleep(a*1000); } while (0)
-
-/*
- * use outb_p(data, addr) and inb_p(addr) to write and read to/from parallel port
- */
-#define HOST_WRITE_CODE {0xca, 0xfe, 0xba, 0x00}
-#define HOST_READ_CODE	{0xca, 0xfe, 0xbe, 0x00}
+#include "6474.h"
 
 /*
  * parallel port status register, base + 1
@@ -40,69 +33,130 @@
 #define HOST_SDO	(0x02)	/* data addr, bit 1 */
 #define HOST_SDI	(0x10)	/* status addr, bit 4 */
 
+/* set/get methods for bit array
+ *
+ *                   1         2
+ *   pos : 012345678901234567890123
+ * index : 0.......1.......2.......
+ *
+ */
+#define BIT_GET 0
+#define BIT_SET 1
+#define BIT_CLR 2
+
+/* tx, rx packet */
+const char tx_header[4] = {0xca, 0xfe, 0xba, 0xba};
+const char rx_header[4] = {0xca, 0xfe, 0xbe, 0xbe};
+char tx_packet[4 + EEPROM_MAX_BYTE];
+char rx_packet[4 + EEPROM_MAX_BYTE];
+
+/* bit operations */
+char bit_op(char *ptr, int pos, int op)
+{
+	int n, rc=0;
+	char *pdata;
+	int mask;
+
+	/* index of the array */
+	n = pos << 3;
+	pdata = &(ptr[n]);
+	mask = (0x80 >> (pos & 0x7));
+	switch(op){
+		case BIT_GET:
+			if (*pdata & mask)
+				rc=1;
+			else
+				rc=0;
+			break;
+
+		case BIT_SET:
+			*pdata = *pdata | mask;
+			break;
+
+		case BIT_CLR:
+			*pdata = *pdata & ~mask;
+			break;
+	}
+	return rc;
+}
+
+void set_bit(char *ptr, int pos)
+{
+	bit_op(ptr, pos, BIT_SET);
+}
+
+void clr_bit(char *ptr, int pos)
+{
+	bit_op(ptr, pos, BIT_CLR);
+
+}
+
+char get_bit(char *ptr, int pos)
+{
+	return bit_op(ptr, pos, BIT_GET);
+}
+
 /*
  * send raw data, on entry, HOST_CS must be low, data port must be 0
  */
-void send_data_raw(char *pdata, int num_byte, int fd)
+void send_packet_raw(char *pdata, int num_byte, int fd)
 {
 	unsigned char data;
-	int n, bit;
+	int n;
 
-	/*
-	 * on entry data port must already be 0,
-	 * HOST_CS must be 0
- 	 */
+	/* data port = 0 */
 	data = 0;
 	ioctl(fd, PPWDATA, &data);
 	msleep(1);
 
 	/* start sending raw data */
-	for (n=0; n<num_byte; n++){
-		/* send a byte */
-		for(bit=7; bit>=0; bit--){
+	for (n=0; n<num_byte*8; n++){
 
-			/* set clock low */
-			data &= (~HOST_CLK);
-			ioctl(fd, PPWDATA, &data);
-			msleep(1);
+		/* set clock low */
+		data &= (~HOST_CLK);
+		ioctl(fd, PPWDATA, &data);
+		msleep(1);
 
-			/* set SDO bit banding value */
-			if (pdata[n] & (1<<bit)){
-				data |= HOST_SDO;
-			}
-			else{
-				data &= (~HOST_SDO);
-			}
-			ioctl(fd, PPWDATA, &data);
-			msleep(1);
+		/* set SDO bit banding value */
+		if (get_bit(pdata, n))
+			data |= HOST_SDO;
+		else
+			data &= (~HOST_SDO);
+		ioctl(fd, PPWDATA, &data);
+		msleep(1);
 
-			/* set clock high */
-			data |= HOST_CLK;
-			ioctl(fd, PPWDATA, &data);
-			msleep(1);
-
-			/* if last bit then wait for the data to process */
-			if (bit == 0){
-				msleep(20);
-			}
-		}
+		/* set clock high */
+		data |= HOST_CLK;
+		ioctl(fd, PPWDATA, &data);
+		msleep(1);
 
 	}
+	/* wait for the packet to be process */
+	msleep(100);
+
 	/* set data port back to 0  */
 	data = 0;
 	ioctl(fd, PPWDATA, &data);
 	msleep(1);
 }
 
-void rx_data(char *pdata, int num_byte, int fd)
+void send_packet(char *pdata, int num_byte, int fd)
 {
-	unsigned char data, status, control;
-	int n, bit;
-	char header[] = HOST_READ_CODE;
+	/* put 4 bytes header and copy pdata into tx_packet */
+	memcpy(tx_packet, tx_header, 4);
+	memcpy(tx_packet+4, pdata, num_byte);
 
-	/* initilize parallel port to known state */
+	/* send packet out */
+	send_packet_raw(tx_packet, 4 + EEPROM_MAX_BYTE, fd);
+}
+
+void receive_packet_raw(char *pdata, int num_byte, int fd)
+{
+	unsigned char data, status;
+	int n;
+
+	/* get initializa status value */
 	ioctl(fd, PPRSTATUS, &status);
-	ioctl(fd, PPRCONTROL, &control);
 	msleep(1);
 
 	/* data port = 0x00 */
@@ -110,54 +164,25 @@ void rx_data(char *pdata, int num_byte, int fd)
 	ioctl(fd, PPWDATA, &data);
 	msleep(1);
 
-	/* set CS high and wait for 100ms for reset, probe pin is inverted */
-	control &= (~HOST_CS);
-	ioctl(fd, PPWCONTROL, &control);
-	msleep(100);
-
-	/* set CS low, probe pin is inverted */
-	control |= HOST_CS;
-	ioctl(fd, PPWCONTROL, &control);
-	msleep(1);
-
-	/* send read request header,
-	 * on entry data port must be 0,
-	 * HOST_CS must be low
-	 */
-	send_data_raw(header, 4, fd);
-
 	/* receive data */
-	for (n=0; n<num_byte; n++){
+	for (n=0; n<num_byte*8; n++){
 
-		/* receive a byte */
-		for(bit=7; bit>=0; bit--){
+		/* set clock low */
+		data &= (~HOST_CLK);
+		ioctl(fd, PPWDATA, &data);
+		msleep(1);
 
-			/* set clock low */
-			data &= (~HOST_CLK);
-			ioctl(fd, PPWDATA, &data);
-			msleep(1);
+		/* set clock high */
+		data |= HOST_CLK;
+		ioctl(fd, PPWDATA, &data);
+		msleep(1);
 
-			/* set clock high */
-			data |= HOST_CLK;
-			ioctl(fd, PPWDATA, &data);
-			msleep(1);
-
-			/* wait for reply */
-			if (bit == 7){
-				/* for each words, pause 100ms for reading from EEPROM */
-				msleep(20);
-			}
-
-			/* check SDI bit value */
-			ioctl(fd, PPRSTATUS, &status);
-			if (status & HOST_SDI){
-				pdata[n] |= (1 <<  bit);
-			}
-			else{
-				pdata[n] &= (~(1 << bit));
-			}
-
-		}
+		/* check SDI bit value */
+		ioctl(fd, PPRSTATUS, &status);
+		if (status & HOST_SDI)
+			set_bit(pdata, n);
+		else
+			clr_bit(pdata, n);
 	}
 
 	/* set data port back to 0 */
@@ -165,48 +190,22 @@ void rx_data(char *pdata, int num_byte, int fd)
 	ioctl(fd, PPWDATA, &data);
 	msleep(1);
 
-	/* set CS high, probe pin is inverted */
-	control &= (~HOST_CS);
-	ioctl(fd, PPWDATA, &data);
-	msleep(1);
-
 }
 
-
-void send_data(char *pdata, int num_byte, int fd)
+/* send a read request and read back data
+ * send : ca,fa,be,be,0,0...
+ * read : ca,fa,be,be,n,n...
+ */
+void receive_packet(char *pdata, int num_byte, int fd)
 {
-	unsigned char data, status, control;
-	char header[] = HOST_WRITE_CODE;
+	/* put 4 bytes header and send the request out */
+	memset(rx_packet, 0, sizeof(rx_packet));
+	memcpy(rx_packet, rx_header, 4);
+	send_packet_raw(rx_packet, 4 + EEPROM_MAX_BYTE, fd);
 
-	/* initilize parallel port to known state */
-	ioctl(fd, PPRSTATUS, &status);
-	ioctl(fd, PPRCONTROL, &control);
-
-	/* data port = 0x00 */
-	data = 0;
-	ioctl(fd, PPWDATA, &data);
-	msleep(1);
-
-	/* set CS high and wait for 100ms for reset, probe pin is inverted */
-	control &= (~HOST_CS);
-	ioctl(fd, PPWCONTROL, &control);
-	msleep(100);
-
-	/* set CS low, probe pin is inverted */
-	control |= HOST_CS;
-	ioctl(fd, PPWCONTROL, &control);
-	msleep(1);
-
-	/* send header */
-	send_data_raw(header, 4, fd);
-
-	/* send data */
-	send_data_raw(pdata, num_byte, fd);
-
-	/* set CS high, probe pin is inverted */
-	control &= (~HOST_CS);
-	ioctl(fd, PPWCONTROL, &control);
-	msleep(1);
+	/* read the data back */
+	receive_packet_raw(rx_packet, 4 + EEPROM_MAX_BYTE, fd);
+	memcpy(pdata, rx_packet+4, num_byte);
 }
 
 void dump_data(char *pdata, int size)
@@ -227,9 +226,9 @@ void dump_data(char *pdata, int size)
 int parport_init(char *devname)
 {
 	int fd;
-	int result;
 	int mode = IEEE1284_MODE_BYTE;
 	int dir = 0x00;
+	int control;
 
 	// Open the parallel port for reading and writing
 	fd = open(devname, O_RDWR);
@@ -260,6 +259,12 @@ int parport_init(char *devname)
 		close(fd);
 		return -1;
 	}
+
+	// make sure strobe is inactive, strobe is inverted
+	ioctl(fd, PPRCONTROL, &control);
+	control &= (~HOST_CS);
+	ioctl(fd, PPWCONTROL, &control);
+	msleep(1);
 
 	return fd;
 }

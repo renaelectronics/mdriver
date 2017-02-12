@@ -29,7 +29,7 @@ static void print_example(int argc, char **argv){
 }
 
 static void print_usage(int argc, char **argv){
-	printf("\n");	
+	printf("\n");
 	printf("EXAMPLE: %s --motor 1 --current 2.0\n", argv[0]);
 	printf("    Set motor 1 with max drive current of 2A\n");
 	printf("\n");
@@ -116,7 +116,7 @@ int get_motor_options(int argc, char **argv, struct motor_options *p)
 				break;
 
 			case 'p':
-				strcpy(p->serport, optarg);
+				strcpy(p->parport, optarg);
 				break;
 
 			case 'm':
@@ -127,7 +127,7 @@ int get_motor_options(int argc, char **argv, struct motor_options *p)
 			case 'r':
 				p->readinfo = 1;
 				break;
-				
+
 			case 'c':
 				p->current = atof(optarg);
 				break;
@@ -135,18 +135,18 @@ int get_motor_options(int argc, char **argv, struct motor_options *p)
 				p->pwm_off = atof(optarg);
 				break;
 
-			case 't':	
+			case 't':
 				p->t_fast = atof(optarg);
 				break;
 
-			case 'e':	
+			case 'e':
 				p->t_step = atof(optarg);
 				break;
 
 			case 'o':
 				p->ton_min = atof(optarg);
 				break;
-		
+
 			case 'f':
 				p->toff_min = atof(optarg);
 				break;
@@ -176,7 +176,7 @@ int get_motor_options(int argc, char **argv, struct motor_options *p)
 
 	if (verbose_flag)
 		puts ("verbose flag is set");
-	
+
 	/* Print any remaining command line arguments (not options). */
 	if (optind < argc){
 		while (optind < argc){
@@ -186,7 +186,7 @@ int get_motor_options(int argc, char **argv, struct motor_options *p)
 			optind++;
 		}
 		putchar ('\n');
-	
+
 		/* print a usage message */
 		print_usage(argc, argv);
 		return 0;

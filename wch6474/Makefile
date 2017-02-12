@@ -1,4 +1,4 @@
-# Copyright 2010 WCH GROUP all right reserved 
+# Copyright 2010 WCH GROUP all right reserved
 CC=gcc -Wall -O2 -pipe -o
 
 all: wch6474
@@ -8,10 +8,10 @@ install: wch6474
 
 
 wch6474: wch6474.c
-#	$(CC) wch6474 wch6474.c options.c serial.c	
-	$(CC) wch6474 wch6474.c options.c parport.c	
+#	$(CC) wch6474 wch6474.c options.c serial.c
+	$(CC) wch6474 wch6474.c options.c parport.c
 
-clean:  
+clean:
 	rm -f wch6474
 	rm -f *~ *.o
 

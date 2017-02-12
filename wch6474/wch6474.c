@@ -1,11 +1,3 @@
-/* TODO: add copy right notes
- * TODO: better display '.' 
- * TODO: add erase eeprom 
- * TODO: read eeprom
- */
-
-/* notes: make sure "sudo chmod a+rw /dev/serport0 */
-
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,13 +10,12 @@
 #include <linux/ioctl.h>
 #include "6474.h"
 #include "options.h"
-#include "serial.h"
+#include "parport.h"
 
 void dump_motor_options(struct motor_options *p)
 {
 	printf("---------------------------------------\n");
-	printf("    Serial Port Device  : %s\n", p->serport);
-	printf("             Motor Unit : %d\n", p->motor);        
+	printf("             Motor Unit : %d\n", p->motor);
 	printf("          Motor Current : %f A\n", p->current);
 	printf("           PWM off Time : %f us\n", p->pwm_off);
 	printf("        Fast Decay Time : %f us\n", p->t_fast);
@@ -40,7 +31,7 @@ int options_check(int argc, char **argv, struct motor_options *p)
 {
 	int rc = 1;
 
-	if ((p->motor < 1) || (p->motor > 4)){
+	if ((p->motor < 0) || (p->motor > 3)){
 		printf("Invalid motor unit %d, ",
 			p->motor);
 		rc = 0;
@@ -59,12 +50,12 @@ int options_check(int argc, char **argv, struct motor_options *p)
 		printf("Invalid pwm_off value %fus, must be between 4 to 124, ",
 			p->pwm_off);
 		rc = 0;
-	}	
+	}
 	else if ((p->t_fast < 2.0) || (p->t_fast > 32.0)){
 		printf("Invalid t_fast value %fus, must be between 2 to 32, ",
 			p->t_fast);
 		rc = 0;
-	}	
+	}
 	else if ((p->t_step < 2.0) || (p->t_step > 32.0)){
 		printf("Invalid t_step value %fus, must be between 2 to 32, ",
 			p->t_step);
@@ -80,28 +71,34 @@ int options_check(int argc, char **argv, struct motor_options *p)
 			p->toff_min);
 		rc = 0;
 	}
-	
+
 	if (rc == 0){
 		printf("use following command for help.\n\n");
-		printf("\t%s --help\n\n", argv[0]); 	
+		printf("\t%s --help\n\n", argv[0]);
 	}
 
 	/* current, resolution 31.25mA */
 	p->current = (int)(p->current / 0.03125) * 0.03125;
-	
+
 	/* overcurrent, resolution 375mA */
 	p->ocd_th = (int)(p->ocd_th / 0.375) * 0.375;
 
 	return rc;
 }
 
-/* 
+/*
  * prepare buffer
  */
 void options_to_buf(struct motor_options *p, char *pbuf)
 {
 	int n,m;
 	int checksum;
+
+	/* EEPROM_MOTOR_NUM */
+	pbuf[EEPROM_MOTOR_NUM] = p->motor;
+
+	/* EEPROM_VERSION */
+	pbuf[EEPROM_VERSION] = 0x00;
 
 	/* EEPROM_ABS_POS */
 	pbuf[EEPROM_ABS_POS + 0] = 0x00;
@@ -116,7 +113,7 @@ void options_to_buf(struct motor_options *p, char *pbuf)
 	pbuf[EEPROM_MARK + 0] = 0x00;
 	pbuf[EEPROM_MARK + 1] = 0x00;
 	pbuf[EEPROM_MARK + 2] = 0x00;
- 
+
 	/* EEPROM_TVAL */
 	n = p->current / 0.03125;
 	pbuf[EEPROM_TVAL] = (n & 0xff);
@@ -172,38 +169,32 @@ void options_to_buf(struct motor_options *p, char *pbuf)
 }
 
 
-/* 
+/*
  * main entry
  */
 int main(int argc, char **argv)
 {
 	char data[EEPROM_MAX_BYTE];
 	struct motor_options p;
-	int serportfd;
-	int rc;
-	char host_write_code[] = HOST_WRITE_CODE;
-	char host_read_code[] = HOST_READ_CODE;
+	int fd;
 
 	/* set default and parse options,
-	 * refer to L6474 datasheet, 
-	 * Doc ID 022529 Rev 3 
+	 * refer to L6474 datasheet,
+	 * Doc ID 022529 Rev 3
 	 */
 	memset(&p, 0, sizeof(struct motor_options));
-#if (1)	
-        strcpy(p.serport, "/dev/ttyWCH0"); 
-#else
-	strcpy(p.serport, "/dev/ttyUSB0"); 
-#endif
+	p.motor = 0;
+	p.version = 0;
 	p.current = 0.03125;
 	p.pwm_off = 44.0;
 	p.t_fast = 4.0;
-	p.t_step = 20.0; 
+	p.t_step = 20.0;
 	p.ton_min = 21.0;
 	p.toff_min = 21.0;
 	p.ocd_th = 8 * 0.375;
 	p.step_mode = 0;/* default to full step */
-	p.readinfo = 0;	
-	
+	p.readinfo = 0;
+
 	if (!get_motor_options(argc, argv, &p)){
 		exit(0);
 	}
@@ -213,30 +204,19 @@ int main(int argc, char **argv)
 		exit(0);
 	}
 
-	/* open serport device */
-	serportfd = serial_open(p.serport);
-	if (serportfd  == -1){
-		printf("failed to open serial port device %s\n", p.serport);
-		printf("type: sudo chmod a+rw %s \n", p.serport);
-		printf("retry the operation again.\n"); 
-		exit(0);
+	/* initialize parallel port */
+	fd = parport_init("/dev/parport0");
+	if (fd <0){
+		printf("failed to initialize parallel port\n");
+		exit (0);
 	}
 
 	if (p.readinfo){
-		/* send command to read motor data */
-		write(serportfd, &(host_read_code[p.motor-1]) ,1);
-		/* read data */
-		rc = serial_read_data(serportfd, data, EEPROM_MAX_BYTE);
-		if (rc < EEPROM_MAX_BYTE){
-			printf("Failed to read motor setting information, number of byte read = %d\n", rc);
-			dump_data(data, rc);
-		}	
-		else{
-			dump_data(data, EEPROM_MAX_BYTE);
-		}	
+		memset(data, 0, sizeof(data));
+		receive_packet(data, EEPROM_MAX_BYTE, fd);
+		dump_data(data, EEPROM_MAX_BYTE);
 		goto out;
 	}
-
 
 	/* dump_motor_options */
 	dump_motor_options(&p);
@@ -247,23 +227,12 @@ int main(int argc, char **argv)
 
 	/* write motor data */
 	printf("Programming ... ");
-	for(;;){
-		if (serial_write_read_data(serportfd, &(host_write_code[p.motor-1]) ,1) <= 0){
-			printf("[FAILED]\n");
-			break;
-		}
-		if ((serial_write_read_data(serportfd, data, EEPROM_MAX_BYTE)) <= 0){
-			printf("[FAILED]\n");
-			break;
-		}
-		printf("[OK]\n");
-		break;
-	}
+	send_packet(data, EEPROM_MAX_BYTE, fd);
 	fflush(stdout);
 
 out:
 	/* close and exit */
-	serial_close(serportfd);
+	parport_exit(fd);
 	exit(0);
 
 }

@@ -2,8 +2,9 @@
 #define OPTIONS_H
 
 struct motor_options{
-	char serport[1024];
+	char parport[1024];
 	int motor;
+	int version;
 	float current;
 	float pwm_off;
 	float t_fast;
@@ -14,7 +15,7 @@ struct motor_options{
 	int step_mode;
 	int config;
 	int readinfo;
-};	
+};
 
 int get_motor_options(int argc, char **argv, struct motor_options *p);
 

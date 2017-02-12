@@ -3,11 +3,10 @@
 
 #define msleep(a)	do { /*printf("."); fflush(stdout); */usleep(a*1000); } while (0)
 
-#define HOST_WRITE_CODE {'X', 'Y', 'Z', 'A'}
-#define HOST_READ_CODE	{'x', 'y', 'z', 'a'}
-
 /* EEPROM location */
-#define EEPROM_ABS_POS      (0)
+#define EEPROM_MOTOR_NUM    (0)
+#define EEPROM_VERSION      (EEPROM_MOTOR_NUM + 1)
+#define EEPROM_ABS_POS      (EEPROM_VERSION + 1)
 #define EEPROM_EL_POS       (EEPROM_ABS_POS + 3)
 #define EEPROM_MARK         (EEPROM_EL_POS + 2)
 #define EEPROM_TVAL         (EEPROM_MARK + 3)
@@ -23,5 +22,9 @@
 #define EEPROM_CHECK_SUM    (EEPROM_STATUS + 2)
 #define EEPROM_MAX_BYTE     (EEPROM_CHECK_SUM + 1)
 #define EEPROM_OFFSET       (0x20)
+
+#if EEPROM_MAX_BYTE > EEPROM_OFFSET
+	#error EEPROM_MAX_BYTE >= EEPROM_OFFSET
+#endif
 
 #endif
