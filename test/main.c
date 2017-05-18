@@ -75,13 +75,23 @@ int main(void)
    // This loop will keep running until ctrl-c is pressed
    while(running)
    {
-      // Output some data
-      // Note that data is passed by a pointer
+      	// Output some data
+      	// Note that data is passed by a pointer
 	printf("."); fflush(stdout);
       	ioctl(fd, PPWDATA, &dataH);
+
+	ioctl(fd, PPRCONTROL, &ctrl);
+   	ctrl = (ctrl | PARPORT_CONTROL_STROBE);
+   	ioctl(fd, PPWCONTROL, &ctrl);
 	sleep(1);
+
 	ioctl(fd, PPWDATA, &dataL);
 	printf("."); fflush(stdout);
+
+	ioctl(fd, PPRCONTROL, &ctrl);
+   	ctrl = (ctrl & ~PARPORT_CONTROL_STROBE);
+   	ioctl(fd, PPWCONTROL, &ctrl);
+
 	sleep(1);
    }
 

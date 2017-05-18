@@ -116,7 +116,7 @@ void send_packet_raw(char *pdata, int num_byte, int fd)
 		/* set clock low */
 		data &= (~HOST_CLK);
 		ioctl(fd, PPWDATA, &data);
-		msleep(10);
+		msleep(100);
 
 		/* set SDO bit banding value */
 		if (get_bit(pdata, n)){
@@ -126,21 +126,21 @@ void send_packet_raw(char *pdata, int num_byte, int fd)
 			data &= (~HOST_SDO);
 		}
 		ioctl(fd, PPWDATA, &data);
-		msleep(10);
+		msleep(100);
 
 		/* set clock high */
 		data |= HOST_CLK;
 		ioctl(fd, PPWDATA, &data);
-		msleep(10);
+		msleep(100);
 
 	}
 	/* wait for the packet to be process */
-	msleep(100);
+	msleep(1000);
 
 	/* set data port back to 0  */
 	data = 0;
 	ioctl(fd, PPWDATA, &data);
-	msleep(1);
+	msleep(10);
 }
 
 void send_packet(char *pdata, int num_byte, int fd)
@@ -160,12 +160,12 @@ void receive_packet_raw(char *pdata, int num_byte, int fd)
 
 	/* get initializa status value */
 	ioctl(fd, PPRSTATUS, &status);
-	msleep(1);
+	msleep(10);
 
 	/* data port = 0x00 */
 	data = 0;
 	ioctl(fd, PPWDATA, &data);
-	msleep(1);
+	msleep(10);
 
 	/* receive data */
 	for (n=0; n<num_byte*8; n++){
@@ -173,12 +173,12 @@ void receive_packet_raw(char *pdata, int num_byte, int fd)
 		/* set clock low */
 		data &= (~HOST_CLK);
 		ioctl(fd, PPWDATA, &data);
-		msleep(1);
+		msleep(10);
 
 		/* set clock high */
 		data |= HOST_CLK;
 		ioctl(fd, PPWDATA, &data);
-		msleep(1);
+		msleep(10);
 
 		/* check SDI bit value */
 		ioctl(fd, PPRSTATUS, &status);
@@ -191,7 +191,7 @@ void receive_packet_raw(char *pdata, int num_byte, int fd)
 	/* set data port back to 0 */
 	data = 0;
 	ioctl(fd, PPWDATA, &data);
-	msleep(1);
+	msleep(10);
 
 }
 
@@ -201,9 +201,11 @@ void receive_packet_raw(char *pdata, int num_byte, int fd)
  */
 void receive_packet(char *pdata, int num_byte, int fd)
 {
-	/* put 4 bytes header and send the request out */
-	memset(rx_packet, 0, sizeof(rx_packet));
+	/* put 4 bytes header and copy pdata into tx_packet */
 	memcpy(rx_packet, rx_header, 4);
+	memcpy(rx_packet+4, pdata, num_byte);
+
+	/* send the request out */
 	send_packet_raw(rx_packet, 4 + EEPROM_MAX_BYTE, fd);
 
 	/* read the data back */
@@ -267,7 +269,7 @@ int parport_init(char *devname)
 	ioctl(fd, PPRCONTROL, &control);
 	control &= (~HOST_CS);
 	ioctl(fd, PPWCONTROL, &control);
-	msleep(1);
+	msleep(10);
 
 	return fd;
 }
