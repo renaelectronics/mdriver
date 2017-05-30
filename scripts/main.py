@@ -1,3 +1,4 @@
+#!/usr/bin/python
 """
 # set/get methods for bit array
 #
@@ -13,11 +14,53 @@ BIT_SET = 1
 BIT_CLR = 2
 
 """ tx/rx packet """
-MAX_PACKET_SIZE = 30 
+""" [ HEADER ][ PAYLOAD ][ CRC ] """
+HEADER_SIZE = 4
+PAYLOAD_SIZE = 128
+CRC_SIZE = 1
+MAX_PACKET_SIZE = (HEADER_SIZE + PAYLOAD_SIZE + CRC_SIZE)
+
+""" AN1310 define """
+STX = 0xf
+ETX = 0x4
+DLE = 0x5
+
+""" packet size """
+ascii = ['0','1']
 tx_packet = bytearray(MAX_PACKET_SIZE)
 rx_packet = bytearray(MAX_PACKET_SIZE)
+payload = bytearray(PAYLOAD_SIZE)
+piodata = 0;
+pioclk = 0;
 
 """ functions """
+def write_bit(data):
+	# clock low
+	sys.stdout.write('%c' % ascii[0])
+	# data value
+	sys.stdout.write('%c' % ascii[data])
+	# clock high
+	sys.stdout.write('%c' % ascii[1])
+	# data value
+	sys.stdout.write('%c' % ascii[data])
+	# clodk low
+	sys.stdout.write('%c' % ascii[0])
+	# data value
+	sys.stdout.write('%c' % ascii[data])
+
+def write_packet(packet):
+	for byte in packet:
+		for i in range(0, 8):
+			if (byte & (1<<i)):
+				write_bit(0)
+			else:
+				write_bit(0)
+
+def read_bootloader_information():
+	packet = bytearray([STX,0x00,0x00,0x00,ETX])
+	write_packet(packet)	
+	return packet	
+
 def bit_op(bytearray, pos, op):
 	"""given a bytearray, get/set/clr the bit position"""
 	# boundary check
@@ -62,5 +105,8 @@ for n in range(0, MAX_PACKET_SIZE-1):
 	rx_packet[n] = 0
 	tx_packet[n] = 0
 
-set_bit(tx_packet, 7)
-dump_data(tx_packet)
+""" read form stdin and packet it into a tx_packet format """
+#for character in sys.stdin:
+#	sys.stdout.write(character)
+
+read_bootloader_information()
