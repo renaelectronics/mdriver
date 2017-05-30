@@ -5,6 +5,7 @@
 #   pos : 012345678901234567890123
 # index : 0.......1.......2.......
 """
+import sys
 
 """ constant and global """
 BIT_GET = 0
@@ -12,7 +13,7 @@ BIT_SET = 1
 BIT_CLR = 2
 
 """ tx/rx packet """
-MAX_PACKET_SIZE = 10 
+MAX_PACKET_SIZE = 30 
 tx_packet = bytearray(MAX_PACKET_SIZE)
 rx_packet = bytearray(MAX_PACKET_SIZE)
 
@@ -49,14 +50,17 @@ def clr_bit(bytarray, pos):
 def get_bit(bytarray, pos):
         return bit_op(bytarray, pos, BIT_GET)
 
-def dump_data(bytearray, size):
-	for n in range(0,size):
-		print '%02x ' % bytearray[n]
-
+def dump_data(bytearray):
+	for n in range(0, len(bytearray)):
+		sys.stdout.write('%02x ' % bytearray[n])
+		if (((n+1)%16) == 0):
+			sys.stdout.write("\n")	
+	sys.stdout.write("\n")
+	
 """ initialize variables """
 for n in range(0, MAX_PACKET_SIZE-1):
 	rx_packet[n] = 0
 	tx_packet[n] = 0
 
 set_bit(tx_packet, 7)
-dump_data(tx_packet, MAX_PACKET_SIZE)
+dump_data(tx_packet)
