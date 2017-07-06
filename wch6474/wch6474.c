@@ -194,14 +194,17 @@ int main(int argc, char **argv)
 	p.ocd_th = 8 * 0.375;
 	p.step_mode = 0;/* default to full step */
 	p.readinfo = 0;
+	p.console = 0;
 
 	if (!get_motor_options(argc, argv, &p)){
 		exit(0);
 	}
-
-	/* options check */
-	if (!options_check(argc, argv, &p)){
-		exit(0);
+	
+	if (!p.console){
+		/* options check */
+		if (!options_check(argc, argv, &p)){
+			exit(0);
+		}
 	}
 
 	/* initialize parallel port */
@@ -211,6 +214,18 @@ int main(int argc, char **argv)
 		exit (0);
 	}
 
+	/* debug console */
+	if (p.console){
+		for(;;){
+			pulse_HOST_CS(fd);
+			while (get_HOST_SDI(fd) == 0);
+			receive_packet_raw(data, 1, fd);
+			printf("%c", data[0]);
+			fflush(stdout);
+		}
+	}
+
+	/* read info */
 	if (p.readinfo){
 		memset(data, 0, sizeof(data));
 		receive_packet(data, EEPROM_MAX_BYTE, fd);

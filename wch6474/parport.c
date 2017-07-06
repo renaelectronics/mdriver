@@ -29,9 +29,10 @@
 #define CTRL_SELECT_IN	(0x08)	/* pin 17 */
 
 /* host bit banding */
-#define HOST_CS		(CTRL_STROBE)	/* crtl addr, bit 0 */
+#define HOST_STROBE	(CTRL_STROBE)	/* crtl addr, bit 0 */
 #define HOST_CLK	(0x01)	/* data addr, bit 0 */
 #define HOST_SDO	(0x02)	/* data addr, bit 1 */
+#define HOST_CS		(0x04)	/* data addr, bit 2 */
 #define HOST_SDI	(0x10)	/* status addr, bit 4 */
 
 /* set/get methods for bit array
@@ -51,59 +52,51 @@ const char rx_header[4] = {0xca, 0xfe, 0xbe, 0xbe};
 char tx_packet[4 + EEPROM_MAX_BYTE];
 char rx_packet[4 + EEPROM_MAX_BYTE];
 
-/* bit operations */
-char bit_op(char *ptr, int pos, int op)
-{
-	int n, rc=0;
-	char *pdata;
-	int mask;
 
-	/* index of the array */
-	n = pos >> 3;
-	pdata = &(ptr[n]);
-	mask = (0x80 >> (pos & 0x7));
-	switch(op){
-		case BIT_GET:
-			if (*pdata & mask)
-				rc=1;
-			else
-				rc=0;
-			break;
+/* pulse HOST_CS */
+void pulse_HOST_CS(int fd)
+{	
+	unsigned char data = 0;
 
-		case BIT_SET:
-			*pdata = *pdata | mask;
-			break;
+	/* HOST_CS = 0 */
+	ioctl(fd, PPWDATA, &data);
+	msleep(10);
 
-		case BIT_CLR:
-			*pdata = *pdata & ~mask;
-			break;
-	}
-	return rc;
-}
+	/* HOST_CS = 1 */
+	data |= HOST_CS;
+	ioctl(fd, PPWDATA, &data);
+	msleep(10);
 
-void set_bit(char *ptr, int pos)
-{
-	bit_op(ptr, pos, BIT_SET);
-}
 
-void clr_bit(char *ptr, int pos)
-{
-	bit_op(ptr, pos, BIT_CLR);
-
-}
-
-char get_bit(char *ptr, int pos)
-{
-	return bit_op(ptr, pos, BIT_GET);
+	/* HOST_CS = 0 */
+	data = 0;
+	ioctl(fd, PPWDATA, &data);
+	msleep(10);
 }
 
 /*
- * send raw data, on entry, HOST_CS must be low, data port must be 0
+ * return the status of SDI
+ */
+int get_HOST_SDI(int fd)
+{
+	unsigned char status;
+
+	/* check SDI bit value */
+	ioctl(fd, PPRSTATUS, &status);
+	if (status & HOST_SDI)
+		return 1;
+	else 
+		return 0;
+}
+
+/*
+ * send raw data, on entry, HOST_STROBE must be low, data port must be 0
  */
 void send_packet_raw(char *pdata, int num_byte, int fd)
 {
 	unsigned char data;
-	int n;
+	char *ptr;
+	int n, bit;
 
 	/* data port = 0 */
 	data = 0;
@@ -111,28 +104,30 @@ void send_packet_raw(char *pdata, int num_byte, int fd)
 	msleep(50);
 
 	/* start sending raw data */
-	for (n=0; n<num_byte*8; n++){
+	for (n=0; n<num_byte; n++){
+		ptr = &pdata[n];
+		for(bit=0; bit<8; bit++){
 
-		/* set clock low */
-		data &= (~HOST_CLK);
-		ioctl(fd, PPWDATA, &data);
-		msleep(100);
+			/* set clock low */
+			data &= (~HOST_CLK);
+			ioctl(fd, PPWDATA, &data);
+			msleep(100);
 
-		/* set SDO bit banding value */
-		if (get_bit(pdata, n)){
-			data |= HOST_SDO;
+			/* set SDO bit banding value */
+			if (ptr[0] & (1<<bit)){
+				data |= HOST_SDO;
+			}
+			else{
+				data &= (~HOST_SDO);
+			}
+			ioctl(fd, PPWDATA, &data);
+			msleep(100);
+
+			/* set clock high */
+			data |= HOST_CLK;
+			ioctl(fd, PPWDATA, &data);
+			msleep(100);
 		}
-		else{
-			data &= (~HOST_SDO);
-		}
-		ioctl(fd, PPWDATA, &data);
-		msleep(100);
-
-		/* set clock high */
-		data |= HOST_CLK;
-		ioctl(fd, PPWDATA, &data);
-		msleep(100);
-
 	}
 	/* wait for the packet to be process */
 	msleep(1000);
@@ -156,7 +151,8 @@ void send_packet(char *pdata, int num_byte, int fd)
 void receive_packet_raw(char *pdata, int num_byte, int fd)
 {
 	unsigned char data, status;
-	int n;
+	char *ptr;
+	int n, bit;
 
 	/* get initializa status value */
 	ioctl(fd, PPRSTATUS, &status);
@@ -168,24 +164,27 @@ void receive_packet_raw(char *pdata, int num_byte, int fd)
 	msleep(10);
 
 	/* receive data */
-	for (n=0; n<num_byte*8; n++){
+	for (n=0; n<num_byte; n++){
+		ptr = &pdata[n];
+		for(bit=0; bit<8; bit++){
+	
+			/* set clock low */
+			data &= (~HOST_CLK);
+			ioctl(fd, PPWDATA, &data);
+			msleep(10);
 
-		/* set clock low */
-		data &= (~HOST_CLK);
-		ioctl(fd, PPWDATA, &data);
-		msleep(10);
+			/* set clock high */
+			data |= HOST_CLK;
+			ioctl(fd, PPWDATA, &data);
+			msleep(10);
 
-		/* set clock high */
-		data |= HOST_CLK;
-		ioctl(fd, PPWDATA, &data);
-		msleep(10);
-
-		/* check SDI bit value */
-		ioctl(fd, PPRSTATUS, &status);
-		if (status & HOST_SDI)
-			set_bit(pdata, n);
-		else
-			clr_bit(pdata, n);
+			/* check SDI bit value */
+			ioctl(fd, PPRSTATUS, &status);
+			if (status & HOST_SDI)
+				ptr[0] |= (1<<bit);
+			else
+				ptr[0] &= (~(1<<bit));
+		}
 	}
 
 	/* set data port back to 0 */
@@ -267,7 +266,7 @@ int parport_init(char *devname)
 
 	// make sure strobe is inactive, strobe is inverted
 	ioctl(fd, PPRCONTROL, &control);
-	control &= (~HOST_CS);
+	control &= (~HOST_STROBE);
 	ioctl(fd, PPWCONTROL, &control);
 	msleep(10);
 

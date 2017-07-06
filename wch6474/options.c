@@ -70,6 +70,7 @@ int get_motor_options(int argc, char **argv, struct motor_options *p)
 		static struct option long_options[] = {
 			{"help", no_argument, 0, 'h'},
 			{"example", no_argument, 0, 'x'},
+			{"console", no_argument, 0, 'z'},
 			{"port", required_argument, 0, 'p'},
 			{"motor", required_argument, 0, 'm'},
 			{"read", no_argument, 0, 'r'},
@@ -87,7 +88,7 @@ int get_motor_options(int argc, char **argv, struct motor_options *p)
 		/* getopt_long stores the option index here. */
 		int option_index = 0;
 
-		c = getopt_long (argc, argv, "rhxp:m:c:w:t:e:o:f:d:s:", long_options, &option_index);
+		c = getopt_long (argc, argv, "zrhxp:m:c:w:t:e:o:f:d:s:", long_options, &option_index);
 
 		/* Detect the end of the options. */
 		if (c == -1)
@@ -103,6 +104,10 @@ int get_motor_options(int argc, char **argv, struct motor_options *p)
 					printf (" with arg %s", optarg);
 				printf ("\n");
 				return 0;
+				break;
+
+			case 'z':
+				p->console = 1;
 				break;
 
 			case 'h':

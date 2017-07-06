@@ -15,6 +15,7 @@ struct motor_options{
 	int step_mode;
 	int config;
 	int readinfo;
+	int console;
 };
 
 int get_motor_options(int argc, char **argv, struct motor_options *p);
