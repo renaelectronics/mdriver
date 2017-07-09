@@ -12,6 +12,15 @@
 #include "options.h"
 #include "parport.h"
 
+/* ctrl-c signal handler */
+static int running = 1;
+
+void signal_handler(int sig)
+{
+	running = 0;
+}
+
+
 void dump_motor_options(struct motor_options *p)
 {
 	printf("---------------------------------------\n");
@@ -218,10 +227,15 @@ int main(int argc, char **argv)
 	if (p.console){
 		for(;;){
 			pulse_HOST_CS(fd);
-			while (get_HOST_SDI(fd) == 0);
+			while (get_HOST_SDI(fd) == 0){
+				if (!running)
+					goto out;
+			}
 			receive_packet_raw(data, 1, fd);
 			printf("%c", data[0]);
 			fflush(stdout);
+			if (!running)
+				goto out;
 		}
 	}
 

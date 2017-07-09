@@ -33,7 +33,6 @@
 #define HOST_CLK	(0x01)	/* data addr, bit 0 */
 #define HOST_SDO	(0x02)	/* data addr, bit 1 */
 #define HOST_CS		(0x04)	/* data addr, bit 2 */
-#define HOST_SDI	(0x10)	/* status addr, bit 4 */
 
 /* set/get methods for bit array
  *
@@ -83,7 +82,7 @@ int get_HOST_SDI(int fd)
 
 	/* check SDI bit value */
 	ioctl(fd, PPRSTATUS, &status);
-	if (status & HOST_SDI)
+	if (status & PARPORT_STATUS_ACK)
 		return 1;
 	else 
 		return 0;
@@ -178,9 +177,9 @@ void receive_packet_raw(char *pdata, int num_byte, int fd)
 			ioctl(fd, PPWDATA, &data);
 			msleep(10);
 
-			/* check SDI bit value */
+			/* check input data bit value */
 			ioctl(fd, PPRSTATUS, &status);
-			if (status & HOST_SDI)
+			if (status & get_HOST_SDI(fd))
 				ptr[0] |= (1<<bit);
 			else
 				ptr[0] &= (~(1<<bit));
