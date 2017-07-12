@@ -42,7 +42,8 @@ static void print_usage(int argc, char **argv){
 	printf("     ?                 print usage and example message\n");
 	printf("    -h, --help         print usage and example message\n");
 	printf("    -x, --example      print details example\n");
-	printf("    -z, --console      read from target device\n");
+	printf("    -z, --console      read from device\n");
+	printf("    -v, --version      read firmware version from device\n");
 	printf("    -d, --device       parport port device name, default is /dev/parport0\n");
 	printf("    -m, --motor        motor unit\n");
 	printf("    -r, --read         read motor setting information\n");
@@ -72,6 +73,7 @@ int get_motor_options(int argc, char **argv, struct motor_options *p)
 			{"help", no_argument, 0, 'h'},
 			{"example", no_argument, 0, 'x'},
 			{"console", no_argument, 0, 'z'},
+			{"version", no_argument, 0, 'v'},
 			{"port", required_argument, 0, 'p'},
 			{"motor", required_argument, 0, 'm'},
 			{"read", no_argument, 0, 'r'},
@@ -89,7 +91,7 @@ int get_motor_options(int argc, char **argv, struct motor_options *p)
 		/* getopt_long stores the option index here. */
 		int option_index = 0;
 
-		c = getopt_long (argc, argv, "zrhxp:m:c:w:t:e:o:f:d:s:", long_options, &option_index);
+		c = getopt_long (argc, argv, "vzrhxp:m:c:w:t:e:o:f:d:s:", long_options, &option_index);
 
 		/* Detect the end of the options. */
 		if (c == -1)
@@ -109,6 +111,10 @@ int get_motor_options(int argc, char **argv, struct motor_options *p)
 
 			case 'z':
 				p->console = 1;
+				break;
+
+			case 'v':
+				p->version = 1;
 				break;
 
 			case 'h':

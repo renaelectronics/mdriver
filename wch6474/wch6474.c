@@ -103,12 +103,6 @@ void options_to_buf(struct motor_options *p, char *pbuf)
 	int n,m;
 	int checksum;
 
-	/* EEPROM_MOTOR_NUM */
-	pbuf[EEPROM_MOTOR_NUM] = p->motor;
-
-	/* EEPROM_VERSION */
-	pbuf[EEPROM_VERSION] = 0x00;
-
 	/* EEPROM_ABS_POS */
 	pbuf[EEPROM_ABS_POS + 0] = 0x00;
 	pbuf[EEPROM_ABS_POS + 1] = 0x00;
@@ -239,10 +233,32 @@ int main(int argc, char **argv)
 		}
 	}
 
+	/* read firmware version */
+	if (p.version){
+		memset(data, 0, sizeof(data));
+
+		/* reset target */
+		pulse_HOST_CS(fd);
+
+		/* send a character 'v' to device */
+		data[0]='v';
+		send_packet_raw(data, 1, fd);
+
+		/* wait for target data ready */
+		while (get_HOST_SDI(fd) == 0){
+			if (!running)
+				goto out;
+		}
+		receive_packet_raw(data, 1, fd);
+		printf("%x", data[0]);
+		fflush(stdout);
+		goto out;
+	}
+		
 	/* read info */
 	if (p.readinfo){
 		memset(data, 0, sizeof(data));
-		receive_packet(data, EEPROM_MAX_BYTE, fd);
+		receive_packet(p.motor, data, EEPROM_MAX_BYTE, fd);
 		dump_data(data, EEPROM_MAX_BYTE);
 		goto out;
 	}
@@ -256,7 +272,7 @@ int main(int argc, char **argv)
 
 	/* write motor data */
 	printf("Programming ... ");
-	send_packet(data, EEPROM_MAX_BYTE, fd);
+	send_packet(p.motor, data, EEPROM_MAX_BYTE, fd);
 	fflush(stdout);
 
 out:

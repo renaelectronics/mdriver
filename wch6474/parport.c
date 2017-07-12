@@ -34,23 +34,15 @@
 #define HOST_SDO	(0x02)	/* data addr, bit 1 */
 #define HOST_CS		(0x04)	/* data addr, bit 2 */
 
-/* set/get methods for bit array
- *
- *                   1         2
- *   pos : 012345678901234567890123
- * index : 0.......1.......2.......
- *
- */
-#define BIT_GET 0
-#define BIT_SET 1
-#define BIT_CLR 2
-
 /* tx, rx packet */
-const char tx_header[4] = {0xca, 0xfe, 0xba, 0xba};
-const char rx_header[4] = {0xca, 0xfe, 0xbe, 0xbe};
-char tx_packet[4 + EEPROM_MAX_BYTE];
-char rx_packet[4 + EEPROM_MAX_BYTE];
+char tx_packet[EEPROM_MAX_BYTE];
+char rx_packet[EEPROM_MAX_BYTE];
 
+static void wait_width(void)
+{
+	/* 1/195200 = 52us */
+	usleep(52);
+}
 
 /* pulse HOST_CS */
 void pulse_HOST_CS(int fd)
@@ -100,7 +92,7 @@ void send_packet_raw(char *pdata, int num_byte, int fd)
 	/* data port = 0 */
 	data = 0;
 	ioctl(fd, PPWDATA, &data);
-	msleep(50);
+	wait_width();
 
 	/* start sending raw data */
 	for (n=0; n<num_byte; n++){
@@ -110,7 +102,7 @@ void send_packet_raw(char *pdata, int num_byte, int fd)
 			/* set clock low */
 			data &= (~HOST_CLK);
 			ioctl(fd, PPWDATA, &data);
-			msleep(100);
+			wait_width();
 
 			/* set SDO bit banding value */
 			if (ptr[0] & (1<<bit)){
@@ -120,29 +112,25 @@ void send_packet_raw(char *pdata, int num_byte, int fd)
 				data &= (~HOST_SDO);
 			}
 			ioctl(fd, PPWDATA, &data);
-			msleep(100);
+			wait_width();
 
 			/* set clock high */
 			data |= HOST_CLK;
 			ioctl(fd, PPWDATA, &data);
-			msleep(100);
+			wait_width();
 		}
 	}
 	/* wait for the packet to be process */
-	msleep(1000);
+	wait_width();
 
 	/* set data port back to 0  */
 	data = 0;
 	ioctl(fd, PPWDATA, &data);
-	msleep(10);
+	wait_width();
 }
 
-void send_packet(char *pdata, int num_byte, int fd)
+void send_packet(int motor, char *pdata, int num_byte, int fd)
 {
-	/* put 4 bytes header and copy pdata into tx_packet */
-	memcpy(tx_packet, tx_header, 4);
-	memcpy(tx_packet+4, pdata, num_byte);
-
 	/* send packet out */
 	send_packet_raw(tx_packet, 4 + EEPROM_MAX_BYTE, fd);
 }
@@ -155,12 +143,12 @@ void receive_packet_raw(char *pdata, int num_byte, int fd)
 
 	/* get initializa status value */
 	ioctl(fd, PPRSTATUS, &status);
-	msleep(10);
+	wait_width();
 
 	/* data port = 0x00 */
 	data = 0;
 	ioctl(fd, PPWDATA, &data);
-	msleep(10);
+	wait_width();
 
 	/* receive data */
 	for (n=0; n<num_byte; n++){
@@ -170,12 +158,12 @@ void receive_packet_raw(char *pdata, int num_byte, int fd)
 			/* set clock low */
 			data &= (~HOST_CLK);
 			ioctl(fd, PPWDATA, &data);
-			msleep(10);
+			wait_width();
 
 			/* set clock high */
 			data |= HOST_CLK;
 			ioctl(fd, PPWDATA, &data);
-			msleep(10);
+			wait_width();
 
 			/* check input data bit value */
 			ioctl(fd, PPRSTATUS, &status);
@@ -189,20 +177,14 @@ void receive_packet_raw(char *pdata, int num_byte, int fd)
 	/* set data port back to 0 */
 	data = 0;
 	ioctl(fd, PPWDATA, &data);
-	msleep(10);
+	wait_width();
 
 }
 
 /* send a read request and read back data
- * send : ca,fa,be,be,0,0...
- * read : ca,fa,be,be,n,n...
  */
-void receive_packet(char *pdata, int num_byte, int fd)
+void receive_packet(int motor, char *pdata, int num_byte, int fd)
 {
-	/* put 4 bytes header and copy pdata into tx_packet */
-	memcpy(rx_packet, rx_header, 4);
-	memcpy(rx_packet+4, pdata, num_byte);
-
 	/* send the request out */
 	send_packet_raw(rx_packet, 4 + EEPROM_MAX_BYTE, fd);
 
@@ -267,7 +249,7 @@ int parport_init(char *devname)
 	ioctl(fd, PPRCONTROL, &control);
 	control &= (~HOST_STROBE);
 	ioctl(fd, PPWCONTROL, &control);
-	msleep(10);
+	wait_width();
 
 	return fd;
 }
