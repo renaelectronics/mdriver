@@ -133,8 +133,42 @@ void send_packet_raw(char *pdata, int num_byte, int fd)
 
 void send_packet(int motor, char *pdata, int num_byte, int fd)
 {
-	/* send packet out */
-	send_packet_raw(tx_packet, 4 + EEPROM_MAX_BYTE, fd);
+	int n;
+	char *string = "XYZA";
+	char echo;
+	if (motor > 3)
+		return;
+	
+	/* send the request out */
+	send_packet_raw(&string[motor], 1, fd);
+
+	/* wait for echo */
+	while (get_HOST_SDI(fd) == 0){
+		if (!main_running)
+			return;	
+	}
+	/* read the data back */
+	receive_packet_raw(&echo, 1, fd);
+	if (echo != string[motor]){
+		printf("Failed to send, sent %02x received %02x\n",
+			string[motor], echo);
+	}
+
+	for (n=0; n<num_byte; n++){
+		send_packet_raw(&pdata[n], 1, fd);
+	
+		/* wait for echo */
+		while (get_HOST_SDI(fd) == 0){
+			if (!main_running)
+				return;	
+		}
+		/* read the data back, the last echo is the checksum 0 */
+		receive_packet_raw(&echo, 1, fd);
+		if (echo != pdata[n])
+			printf("Failed to send, sent %02x received %02x\n",
+				pdata[n], echo);
+	}
+
 }
 
 void receive_packet_raw(char *pdata, int num_byte, int fd)
@@ -193,8 +227,7 @@ void receive_packet(int motor, char *pdata, int num_byte, int fd)
 		return;
 	
 	/* send the request out */
-	pdata[0] = string[motor];
-	send_packet_raw(pdata, 1, fd);
+	send_packet_raw(&string[motor], 1, fd);
 
 	for (n=0; n<num_byte; n++){
 		/* wait for target data ready */

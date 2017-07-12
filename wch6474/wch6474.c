@@ -254,30 +254,36 @@ int main(int argc, char **argv)
 		goto out;
 	}
 		
-	/* read info */
-	if (p.readinfo){
-		memset(data, 0, sizeof(data));
+	/* write and read device info */
+	if (!p.readinfo){
+
+		/* dump_motor_options */
+		dump_motor_options(&p);
 
 		/* reset target */
 		pulse_HOST_CS(fd);
 
-		/* get device data */
-		receive_packet(p.motor, data, EEPROM_MAX_BYTE, fd);
-		dump_data(data, EEPROM_MAX_BYTE);
-		goto out;
+		/* prepare data */
+		memset(data, 0, EEPROM_MAX_BYTE);
+		options_to_buf(&p, data);
+
+		/* write motor data */
+		printf("Programming ...");
+		fflush(stdout);
+		send_packet(p.motor, data, EEPROM_MAX_BYTE, fd);
+		printf("\n");
+	
 	}
 
-	/* dump_motor_options */
-	dump_motor_options(&p);
+	/* always read the device info */
+	memset(data, 0, sizeof(data));
 
-	/* prepare data */
-	memset(data, 0, EEPROM_MAX_BYTE);
-	options_to_buf(&p, data);
+	/* reset target */
+	pulse_HOST_CS(fd);
 
-	/* write motor data */
-	printf("Programming ... ");
-	send_packet(p.motor, data, EEPROM_MAX_BYTE, fd);
-	fflush(stdout);
+	/* get device data */
+	receive_packet(p.motor, data, EEPROM_MAX_BYTE, fd);
+	dump_data(data, EEPROM_MAX_BYTE);
 
 out:
 	/* close and exit */
