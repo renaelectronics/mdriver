@@ -225,8 +225,8 @@ int main(int argc, char **argv)
 
 	/* debug console */
 	if (p.console){
+		pulse_HOST_CS(fd);
 		for(;;){
-			pulse_HOST_CS(fd);
 			while (get_HOST_SDI(fd) == 0){
 				if (!running)
 					goto out;
