@@ -11,6 +11,9 @@
 #include "6474.h"
 #include "parport.h"
 
+/* main program running */
+extern int main_running;
+
 /*
  * parallel port status register, base + 1
  */
@@ -36,7 +39,6 @@
 
 /* tx, rx packet */
 char tx_packet[EEPROM_MAX_BYTE];
-char rx_packet[EEPROM_MAX_BYTE];
 
 static void wait_width(void)
 {
@@ -185,12 +187,24 @@ void receive_packet_raw(char *pdata, int num_byte, int fd)
  */
 void receive_packet(int motor, char *pdata, int num_byte, int fd)
 {
+	int n;
+	char *string = "xyza";
+	if (motor > 3)
+		return;
+	
 	/* send the request out */
-	send_packet_raw(rx_packet, 4 + EEPROM_MAX_BYTE, fd);
+	pdata[0] = string[motor];
+	send_packet_raw(pdata, 1, fd);
 
-	/* read the data back */
-	receive_packet_raw(rx_packet, 4 + EEPROM_MAX_BYTE, fd);
-	memcpy(pdata, rx_packet+4, num_byte);
+	for (n=0; n<num_byte; n++){
+		/* wait for target data ready */
+		while (get_HOST_SDI(fd) == 0){
+			if (!main_running)
+				return;	
+		}
+		/* read the data back */
+		receive_packet_raw(&pdata[n], 1, fd);
+	}
 }
 
 void dump_data(char *pdata, int size)

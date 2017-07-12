@@ -13,13 +13,12 @@
 #include "parport.h"
 
 /* ctrl-c signal handler */
-static int running = 1;
+int main_running= 1;
 
 void signal_handler(int sig)
 {
-	running = 0;
+	main_running = 0;
 }
-
 
 void dump_motor_options(struct motor_options *p)
 {
@@ -222,13 +221,13 @@ int main(int argc, char **argv)
 		pulse_HOST_CS(fd);
 		for(;;){
 			while (get_HOST_SDI(fd) == 0){
-				if (!running)
+				if (!main_running)
 					goto out;
 			}
 			receive_packet_raw(data, 1, fd);
 			printf("%c", data[0]);
 			fflush(stdout);
-			if (!running)
+			if (!main_running)
 				goto out;
 		}
 	}
@@ -246,11 +245,11 @@ int main(int argc, char **argv)
 
 		/* wait for target data ready */
 		while (get_HOST_SDI(fd) == 0){
-			if (!running)
+			if (!main_running)
 				goto out;
 		}
 		receive_packet_raw(data, 1, fd);
-		printf("%x", data[0]);
+		printf("Device Firmware Version: %x\n", data[0]);
 		fflush(stdout);
 		goto out;
 	}
@@ -258,6 +257,11 @@ int main(int argc, char **argv)
 	/* read info */
 	if (p.readinfo){
 		memset(data, 0, sizeof(data));
+
+		/* reset target */
+		pulse_HOST_CS(fd);
+
+		/* get device data */
 		receive_packet(p.motor, data, EEPROM_MAX_BYTE, fd);
 		dump_data(data, EEPROM_MAX_BYTE);
 		goto out;
