@@ -252,6 +252,22 @@ void dump_data(char *pdata, int size)
 	printf("\n");
 }
 
+void parport_strobe(int enable, int fd)
+{
+	char ctrl;
+
+	/* read the existing control value */
+	ioctl(fd, PPRCONTROL, &ctrl);
+
+	/* strobe is inverted */
+	if (enable)
+		ctrl &= ~(PARPORT_CONTROL_STROBE);
+	else
+		ctrl |= PARPORT_CONTROL_STROBE;
+
+	ioctl(fd, PPWCONTROL, &ctrl);
+}
+
 /*
  * parallel port initiaization
  */

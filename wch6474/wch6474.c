@@ -179,6 +179,7 @@ int main(int argc, char **argv)
 	char data[EEPROM_MAX_BYTE];
 	struct motor_options p;
 	int fd;
+	int n;
 
 	/* set default and parse options,
 	 * refer to L6474 datasheet,
@@ -215,6 +216,22 @@ int main(int argc, char **argv)
 		printf("failed to initialize parallel port\n");
 		exit (0);
 	}
+
+	if (p.strobe){
+		/* force strobe to enable for few seconds */
+		parport_strobe(0, fd);
+		printf("Force strobe line to active for 10 seconds ");		
+		fflush(stdout);
+		for(n=0; n<10; n++){
+			printf(".");
+			fflush(stdout);
+			sleep(1);
+		}
+		printf("\n");
+	}
+
+	/* parport strobe disable */
+	parport_strobe(1, fd);
 
 	/* debug console */
 	if (p.console){

@@ -14,7 +14,7 @@ static void print_example(int argc, char **argv){
 	printf("\n");
 	printf("    %s --port /dev/parport0  --motor 1 --current 2.0 --step_mode 16 --ocd_th 3\n", argv[0]);
 	printf("\n");
-	printf("    Use serial port /dev/parport0 to configure motor 1\n");
+	printf("    Use parallel port /dev/parport0 to configure motor\n");
 	printf("    with drive current to 2.0A, step mode to 16 steps and\n");
 	printf("    over detection current detection to 3A\n");
 	printf("\n");
@@ -22,7 +22,7 @@ static void print_example(int argc, char **argv){
 	printf("\n");
 	printf("    %s -p /dev/parport0 -m 1 -c 2.0 -s 16 -d 3\n", argv[0]);
 	printf("\n");
-	printf("    Use serial port /dev/parport0 to configure motor 1\n");
+	printf("    Use serial port /dev/parport0 to configure motor\n");
 	printf("    with drive current to 2.0A, step mode to 16 steps and\n");
 	printf("    over detection current detection to 3A\n");
 	printf("\n");
@@ -30,11 +30,11 @@ static void print_example(int argc, char **argv){
 
 static void print_usage(int argc, char **argv){
 	printf("\n");
-	printf("EXAMPLE: %s --motor 1 --current 2.0\n", argv[0]);
-	printf("    Set motor 1 with max drive current of 2A\n");
+	printf("EXAMPLE: %s --motor 0 --current 2.0\n", argv[0]);
+	printf("    Set motor 0 with max drive current of 2A\n");
 	printf("\n");
- 	printf("SHORT HAND EXAMPLE: %s -m 1 -c 2.0\n", argv[0]);
-	printf("    Set motor 1 with max drive current of 2A\n");
+ 	printf("SHORT HAND EXAMPLE: %s -m 0 -c 2.0\n", argv[0]);
+	printf("    Set motor 0 with max drive current of 2A\n");
 	printf("\n");
 	printf("DETAIL USAGE: %s [OPTION...] \n", argv[0]);
 	printf("\n");
@@ -43,6 +43,7 @@ static void print_usage(int argc, char **argv){
 	printf("    -h, --help         print usage and example message\n");
 	printf("    -x, --example      print details example\n");
 	printf("    -z, --console      read from device\n");
+	printf("    -a, --force        force strobe to on for 5 seconds\n");
 	printf("    -v, --version      read firmware version from device\n");
 	printf("    -d, --device       parport port device name, default is /dev/parport0\n");
 	printf("    -m, --motor        motor unit\n");
@@ -73,6 +74,7 @@ int get_motor_options(int argc, char **argv, struct motor_options *p)
 			{"help", no_argument, 0, 'h'},
 			{"example", no_argument, 0, 'x'},
 			{"console", no_argument, 0, 'z'},
+			{"force", no_argument, 0, 'a'},
 			{"version", no_argument, 0, 'v'},
 			{"port", required_argument, 0, 'p'},
 			{"motor", required_argument, 0, 'm'},
@@ -91,7 +93,7 @@ int get_motor_options(int argc, char **argv, struct motor_options *p)
 		/* getopt_long stores the option index here. */
 		int option_index = 0;
 
-		c = getopt_long (argc, argv, "vzrhxp:m:c:w:t:e:o:f:d:s:", long_options, &option_index);
+		c = getopt_long (argc, argv, "avzrhxp:m:c:w:t:e:o:f:d:s:", long_options, &option_index);
 
 		/* Detect the end of the options. */
 		if (c == -1)
@@ -107,6 +109,10 @@ int get_motor_options(int argc, char **argv, struct motor_options *p)
 					printf (" with arg %s", optarg);
 				printf ("\n");
 				return 0;
+				break;
+
+			case 'a':
+				p->strobe = 1;
 				break;
 
 			case 'z':
