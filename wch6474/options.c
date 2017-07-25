@@ -80,7 +80,7 @@ int get_motor_options(int argc, char **argv, struct motor_options *p)
 			{"motor", required_argument, 0, 'm'},
 			{"read", no_argument, 0, 'r'},
 			{"current", required_argument, 0, 'c'},
-			{"pwd_off", required_argument, 0, 'w'},
+			{"pwm_off", required_argument, 0, 'w'},
 			{"t_fast", required_argument, 0, 't'},
 			{"t_step", required_argument, 0, 'e'},
 			{"ton_min", required_argument, 0, 'o'},
