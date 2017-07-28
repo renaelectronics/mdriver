@@ -118,6 +118,9 @@ void options_to_buf(struct motor_options *p, char *pbuf)
 
 	/* EEPROM_TVAL */
 	n = p->current / 0.03125;
+	n = n - 1;
+	if (n < 0)
+		n = 0;
 	pbuf[EEPROM_TVAL] = (n & 0xff);
 
 	/* EEPROM_T_FAST */
